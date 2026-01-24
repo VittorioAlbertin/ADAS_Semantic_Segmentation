@@ -26,15 +26,19 @@ def fast_hist(a, b, n):
     k = (a >= 0) & (a < n)
     return np.bincount(n * a[k].astype(int) + b[k], minlength=n ** 2).reshape(n, n)
 
-def validate(model, val_loader, device, num_classes):
+def validate(model, val_loader, device, num_classes, max_samples=None, save_dir=None, save_num=0):
     """
-    Runs validation on the given loader and returns metrics.
+    Runs validation with optional visualization and sample limiting.
     """
     model.eval()
     hist = np.zeros((num_classes, num_classes))
     
+    total_samples = len(val_loader)
+    if max_samples:
+        total_samples = min(total_samples, max_samples)
+    
     with torch.no_grad():
-        for i, (image, label) in enumerate(tqdm(val_loader, desc="Validating", leave=False)):
+        for i, (image, label) in enumerate(tqdm(val_loader, desc="Validating", leave=False, total=total_samples)):
             image = image.to(device)
             # label is (B, H, W)
             
@@ -51,6 +55,24 @@ def validate(model, val_loader, device, num_classes):
             # Remove ignore_index
             mask = (label_flat != IGNORE_INDEX)
             hist += fast_hist(label_flat[mask], pred_flat[mask], num_classes)
+            
+            # Visualization
+            if save_dir and i < save_num:
+                # Save comparison
+                img_vis = denormalize(image[0])
+                gt_vis = decode_segmap(label[0])
+                pred_vis = decode_segmap(pred[0])
+                
+                # Combine: Input | GT | Pred
+                # img_vis is float 0..1, others are uint8 0..255
+                img_vis = (img_vis * 255).astype(np.uint8)
+                
+                combined = np.hstack([img_vis, gt_vis, pred_vis])
+                Image.fromarray(combined).save(os.path.join(save_dir, f"val_{i}.png"))
+            
+            # Break if max_samples reached
+            if max_samples and (i + 1) >= max_samples:
+                break
             
     # Metrics
     acc = np.diag(hist).sum() / hist.sum()
@@ -82,35 +104,16 @@ def evaluate(args):
     
     # Validation Dataset
     val_set = CityscapesDataset(root=DATASET_ROOT, split='val', mode='fine', transform=None)
-    
-    # Tqdm total handling
-    total_samples = len(val_set)
-    if args.max_samples:
-        total_samples = min(total_samples, args.max_samples)
-        # Create a subset or custom sampler if needed, but for now we just break loop
-        # Actually simplest is to just slice dataset indices? 
-        # But Dataset doesn't support slicing easily. 
-        # We'll rely on the loop break in 'validate' if we passed max_samples logic there.
-        # Check: `validate` above doesn't have max_samples logic.
-        # Let's keep `evaluate` controlling max_samples logic by slicing the LOADER?
-        # Or Just keep simple loop in validate.
-    
     val_loader = DataLoader(val_set, batch_size=1, shuffle=False, num_workers=2, pin_memory=True)
 
-    # For visualization in `evaluate` CLI mode, we unfortunately need the loop. 
-    # The refactor requested assumes `validate` is pure metrics.
-    # So `evaluate` script might duplicate some logic OR `validate` should support a callback/hook?
-    # Let's keep `validate` pure for training loop.
-    # The CLI `evaluate` can use `validate` for metrics, but if it needs visualization...
-    # Okay, for simplicity: `validate` calculates metrics. 
-    # If CLI needs viz, it can run a separate loop or we pass a `save_dir` to `validate`.
-    
-    # Let's implement `validate` with optional save_dir
     save_dir = os.path.join("results", args.model)
     os.makedirs(save_dir, exist_ok=True)
     
-    # Quick dirty: We just call `validate`.
-    metrics = validate(model, val_loader, device, NUM_CLASSES)
+    # Call validate with all arguments
+    metrics = validate(model, val_loader, device, NUM_CLASSES, 
+                      max_samples=args.max_samples,
+                      save_dir=save_dir,
+                      save_num=args.save_num)
     
     print("\n" + "="*40)
     print(f"Evaluation Results [{args.model}]")

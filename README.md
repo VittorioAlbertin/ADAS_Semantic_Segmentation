@@ -100,7 +100,11 @@ python -m src.train --model segformer --epochs 50 --lr 6e-5
 Evaluate trained models on the **full-resolution (1024x2048)** validation set.
 
 ```powershell
-python src/evaluate.py --model unet --checkpoint checkpoints/unet_latest.pth --save_num 5
+# Standard Evaluation (Full validation set)
+python -m src.evaluate --model unet --checkpoint checkpoints/unet_best.pth --save_num 5
+
+# Quick Visualization (Test only 5 images and stop)
+python -m src.evaluate --model unet --checkpoint checkpoints/unet_best.pth --max_samples 5 --save_num 5 --device cpu
 ```
 *   **Metrics**: Calculates Global Pixel Accuracy, Mean Class Accuracy, and **mIoU**.
 *   **Visualization**: Saves side-by-side comparisons (Image | GT | Pred) to `results/<model>/`.

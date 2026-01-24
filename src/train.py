@@ -6,6 +6,8 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 import time
+import csv
+import matplotlib.pyplot as plt
 
 from src.dataset import CityscapesDataset
 from src.config import DATASET_ROOT, CROP_SIZE, FULL_SIZE, BATCH_SIZE, NUM_CLASSES, IGNORE_INDEX, DEVICE
@@ -98,7 +100,11 @@ def train(args):
         if (epoch + 1) % args.val_interval == 0:
             print("Running Validation...")
             torch.cuda.empty_cache() # Clear VRAM
-            metrics = validate(model, val_loader, device, NUM_CLASSES)
+            
+            save_dir = os.path.join("results", args.model)
+            os.makedirs(save_dir, exist_ok=True)
+            
+            metrics = validate(model, val_loader, device, NUM_CLASSES, save_dir=save_dir, save_num=5)
             print(f"Val mIoU: {metrics['mIoU']:.4f} | Pixel Acc: {metrics['Pixel Acc']:.4f}")
             
             # Save Latest
@@ -112,6 +118,56 @@ def train(args):
                 best_path = os.path.join("checkpoints", f"{args.model}_best.pth")
                 torch.save(model.state_dict(), best_path)
                 print(f"New Best mIoU! Saved to {best_path}")
+            
+            # --- Logging & Plotting ---
+            log_path = os.path.join("results", args.model, "log.csv")
+            file_exists = os.path.isfile(log_path)
+            
+            # Write key metrics to CSV
+            with open(log_path, mode='a', newline='') as f:
+                writer = csv.writer(f)
+                if not file_exists:
+                    writer.writerow(['epoch', 'train_loss', 'val_miou', 'val_pixel_acc', 'val_mean_acc'])
+                writer.writerow([epoch+1, avg_loss, metrics['mIoU'], metrics['Pixel Acc'], metrics['Mean Acc']])
+            
+            # Update Plot
+            try:
+                # Read back log file to plot full history
+                epochs, losses, mious, pixel_accs = [], [], [], []
+                with open(log_path, mode='r') as f:
+                    reader = csv.DictReader(f)
+                    for row in reader:
+                        epochs.append(int(row['epoch']))
+                        losses.append(float(row['train_loss']))
+                        mious.append(float(row['val_miou']))
+                        pixel_accs.append(float(row['val_pixel_acc']))
+                
+                plt.figure(figsize=(10, 5))
+                
+                # Loss Plot
+                plt.subplot(1, 2, 1)
+                plt.plot(epochs, losses, label='Train Loss', color='red', marker='o')
+                plt.title('Training Loss')
+                plt.xlabel('Epoch')
+                plt.ylabel('Loss')
+                plt.grid(True)
+                
+                # Metrics Plot
+                plt.subplot(1, 2, 2)
+                plt.plot(epochs, mious, label='mIoU', color='blue', marker='o')
+                plt.plot(epochs, pixel_accs, label='Pixel Acc', color='green', marker='x')
+                plt.title('Validation Metrics')
+                plt.xlabel('Epoch')
+                plt.ylabel('Score')
+                plt.legend()
+                plt.grid(True)
+                
+                plt.tight_layout()
+                plt.savefig(os.path.join("results", args.model, "training_plot.png"))
+                plt.close()
+                print(f"Updated training plot at results/{args.model}/training_plot.png")
+            except Exception as e:
+                print(f"Warning: Failed to plot metrics: {e}")
             
             model.train() # Switch back to train mode
 
