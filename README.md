@@ -76,20 +76,25 @@ The main training script is `src/train.py`. It supports all three models.
 *   `--model`: [`unet`, `deeplab`, `segformer`]
 *   `--epochs`: Number of epochs (Default: 10)
 *   `--lr`: Learning rate (Default: 1e-4)
+*   `--val_interval`: Run validation every N epochs (Default: 1).
+*   `--resume`: Path to a checkpoint `.pth` file to resume training from.
 
 **Examples**:
 ```powershell
-# Train U-Net from scratch
-python -m src.train --model unet --epochs 50 --lr 1e-4
+# Train U-Net from scratch (Validate every epoch)
+python -m src.train --model unet --epochs 50 --val_interval 1
 
-# Train DeepLabV3+ (Fine-tuning ResNet50)
-python -m src.train --model deeplab --epochs 50 --lr 1e-4
+# Resume training from latest checkpoint
+python -m src.train --model unet --epochs 50 --resume checkpoints/unet_latest.pth
 
-# Train SegFormer (Fine-tuning MiT-B0)
+# Train SegFormer with custom LR
 python -m src.train --model segformer --epochs 50 --lr 6e-5
 ```
-*   **Checkpoints**: Saved to `checkpoints/<model>_latest.pth`.
-*   **Logs**: Training loss and validation loop progress printed to console.
+
+**Features**:
+*   **Auto-Save Best**: The script automatically tracks mIoU and saves the best model to `checkpoints/<model>_best.pth`.
+*   **Latest**: Always saves the current state to `checkpoints/<model>_latest.pth`.
+*   **Logs**: Training loss and validation metrics (mIoU, Pixel Acc) printed to console.
 
 ### 3. Evaluation
 Evaluate trained models on the **full-resolution (1024x2048)** validation set.
