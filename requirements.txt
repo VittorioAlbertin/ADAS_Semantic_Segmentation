@@ -1,0 +1,9 @@
+typing-extensions>=4.10.0
+numpy
+
+matplotlib
+pillow
+opencv-python
+tqdm
+# Please install torch separately using:
+# pip3 install torch torchvision --index-url https://download.pytorch.org/whl/cu130
