@@ -61,8 +61,18 @@ def validate(model, val_loader, device, num_classes, max_samples=None, save_dir=
             if save_dir and i < save_num:
                 # Save comparison
                 img_vis = denormalize(image[0])
-                gt_vis = decode_segmap(label[0])
-                pred_vis = decode_segmap(pred[0])
+                
+                # Copy prediction to not modify tensor for metrics
+                pred_disp = pred[0].copy()
+                label_disp = label[0]
+                
+                # Apply void mask to prediction for visualization
+                # Pixels where label is IGNORE_INDEX should be black in prediction too
+                void_mask = (label_disp == IGNORE_INDEX)
+                pred_disp[void_mask] = IGNORE_INDEX
+                
+                gt_vis = decode_segmap(label_disp)
+                pred_vis = decode_segmap(pred_disp)
                 
                 # Combine: Input | GT | Pred
                 # img_vis is float 0..1, others are uint8 0..255

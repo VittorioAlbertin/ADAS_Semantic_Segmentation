@@ -7,6 +7,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import time
 import csv
+import math
 import matplotlib.pyplot as plt
 
 from src.dataset import CityscapesDataset
@@ -130,42 +131,69 @@ def train(args):
             log_path = os.path.join("results", args.model, "log.csv")
             file_exists = os.path.isfile(log_path)
             
+            # Key classes to track: Road (Common), Wall (Rare), Traffic Sign (Safety/Rare), Car (Common)
+            # Indices: Road=0, Wall=3, Traffic Sign=7, Car=13
+            iou_road = metrics['Class IoU'][0]
+            iou_wall = metrics['Class IoU'][3]
+            iou_sign = metrics['Class IoU'][7]
+            iou_car = metrics['Class IoU'][13]
+
             # Write key metrics to CSV
             with open(log_path, mode='a', newline='') as f:
                 writer = csv.writer(f)
                 if not file_exists:
-                    writer.writerow(['epoch', 'train_loss', 'val_miou', 'val_pixel_acc', 'val_mean_acc'])
-                writer.writerow([epoch+1, avg_loss, metrics['mIoU'], metrics['Pixel Acc'], metrics['Mean Acc']])
+                    writer.writerow(['epoch', 'train_loss', 'val_miou', 'val_pixel_acc', 'val_mean_acc', 'iou_road', 'iou_wall', 'iou_sign', 'iou_car'])
+                writer.writerow([epoch+1, avg_loss, metrics['mIoU'], metrics['Pixel Acc'], metrics['Mean Acc'], iou_road, iou_wall, iou_sign, iou_car])
             
             # Update Plot
             try:
                 # Read back log file to plot full history
-                epochs, losses, mious, pixel_accs = [], [], [], []
+                epochs, losses, mious = [], [], []
+                road_ious, wall_ious = [], []
+                
+                def safe_float(v):
+                    if v is None or v == "": return float('nan')
+                    try: return float(v)
+                    except ValueError: return float('nan')
+
                 with open(log_path, mode='r') as f:
                     reader = csv.DictReader(f)
                     for row in reader:
+                        if 'epoch' not in row or not row['epoch']: continue
                         epochs.append(int(row['epoch']))
-                        losses.append(float(row['train_loss']))
-                        mious.append(float(row['val_miou']))
-                        pixel_accs.append(float(row['val_pixel_acc']))
+                        losses.append(safe_float(row.get('train_loss')))
+                        mious.append(safe_float(row.get('val_miou')))
+                        
+                        # Handle missing columns from older runs
+                        if 'iou_road' in row:
+                            road_ious.append(safe_float(row['iou_road']))
+                            wall_ious.append(safe_float(row.get('iou_wall')))
+                        else:
+                            road_ious.append(float('nan'))
+                            wall_ious.append(float('nan'))
                 
-                plt.figure(figsize=(10, 5))
+                plt.figure(figsize=(12, 5))
                 
                 # Loss Plot
                 plt.subplot(1, 2, 1)
                 plt.plot(epochs, losses, label='Train Loss', color='red', marker='o')
                 plt.title('Training Loss')
                 plt.xlabel('Epoch')
-                plt.ylabel('Loss')
                 plt.grid(True)
                 
-                # Metrics Plot
+                # Metrics Plot (mIoU vs Specific Classes)
                 plt.subplot(1, 2, 2)
-                plt.plot(epochs, mious, label='mIoU', color='blue', marker='o')
-                plt.plot(epochs, pixel_accs, label='Pixel Acc', color='green', marker='x')
-                plt.title('Validation Metrics')
+                plt.plot(epochs, mious, label='mIoU (Avg)', color='black', linewidth=2, linestyle='--')
+                
+                # Only plot class indices if we have valid data
+                valid_road = [x for x in road_ious if not math.isnan(x)]
+                if valid_road:
+                     plt.plot(epochs, road_ious, label='Road (Common)', color='green', marker='.')
+                     plt.plot(epochs, wall_ious, label='Wall (Rare)', color='orange', marker='.')
+                
+                plt.title('Class-Specific IoU Trends')
                 plt.xlabel('Epoch')
-                plt.ylabel('Score')
+                plt.ylabel('IoU')
                 plt.legend()
                 plt.grid(True)
                 
