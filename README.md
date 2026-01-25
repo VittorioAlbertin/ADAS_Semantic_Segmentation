@@ -78,6 +78,7 @@ The main training script is `src/train.py`. It supports all three models.
 *   `--lr`: Learning rate (Default: 1e-4)
 *   `--val_interval`: Run validation every N epochs (Default: 1).
 *   `--resume`: Path to a checkpoint `.pth` file to resume training from.
+*   `--weighted_loss`: Use Class-Weighted Cross Entropy (Addresses imbalance).
 
 **Examples**:
 ```powershell
@@ -89,6 +90,9 @@ python -m src.train --model unet --epochs 50 --resume checkpoints/unet_latest.pt
 
 # Train SegFormer with custom LR
 python -m src.train --model segformer --epochs 50 --lr 6e-5
+
+# Train with Weighted Loss (Recommended)
+python -m src.train --model unet --epochs 50 --weighted_loss
 ```
 
 **Features**:
