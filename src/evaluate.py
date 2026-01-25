@@ -3,6 +3,7 @@ import argparse
 import torch
 import torch.nn as nn
 import numpy as np
+import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from PIL import Image
@@ -126,6 +127,55 @@ def evaluate(args):
     for name, score in zip(CLASSES, metrics['Class IoU']):
         print(f"{name:15s}: {score:.4f}")
     print("="*40)
+
+    try:
+        plot_path = os.path.join(save_dir, "iou_per_class.png")
+        plt.figure(figsize=(15, 8))
+        
+        # Sort by Frequency (Descending)
+        from src.config import CLASS_COUNTS
+        # Zip everything together: (Count, Name, Score)
+        data = list(zip(CLASS_COUNTS, CLASSES, metrics['Class IoU']))
+        # Sort by Count (Descending)
+        data.sort(key=lambda x: x[0], reverse=True)
+        
+        # Unzip
+        sorted_counts, sorted_classes, sorted_scores = zip(*data)
+        
+        x = np.arange(len(sorted_classes))
+        # Color mapped by frequency? Or just standard. Let's stick to standard blue.
+        plt.bar(x, sorted_scores, color='skyblue', edgecolor='navy')
+        plt.xticks(x, sorted_classes, rotation=45, ha='right')
+        plt.ylabel('IoU Score')
+        plt.title(f'Per-Class IoU - {args.model} (Sorted by Frequency)')
+        plt.ylim(0, 1.0)
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        
+        # Add value labels
+        for i, v in enumerate(sorted_scores):
+            plt.text(i, v + 0.01, f"{v:.2f}", ha='center', fontsize=9)
+            
+        plt.tight_layout()
+        plt.savefig(plot_path)
+        plt.close()
+        print(f"Per-Class IoU plot saved to {plot_path}")
+    except Exception as e:
+        print(f"Warning: Failed to plot IoU: {e}")
+
+    # Save to CSV
+    csv_path = os.path.join(save_dir, "evaluation_metrics.csv")
+    import csv # Lazy import or add up top, assume standard
+    with open(csv_path, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['Metric', 'Value'])
+        writer.writerow(['Pixel Acc', f"{metrics['Pixel Acc']:.4f}"])
+        writer.writerow(['Mean Class Acc', f"{metrics['Mean Acc']:.4f}"])
+        writer.writerow(['mIoU', f"{metrics['mIoU']:.4f}"])
+        writer.writerow([])
+        writer.writerow(['Class', 'IoU'])
+        for name, score in zip(CLASSES, metrics['Class IoU']):
+            writer.writerow([name, f"{score:.4f}"])
+    print(f"Metrics saved to {csv_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

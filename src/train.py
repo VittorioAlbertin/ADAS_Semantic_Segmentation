@@ -10,7 +10,7 @@ import csv
 import matplotlib.pyplot as plt
 
 from src.dataset import CityscapesDataset
-from src.config import DATASET_ROOT, CROP_SIZE, FULL_SIZE, BATCH_SIZE, NUM_CLASSES, IGNORE_INDEX, DEVICE
+from src.config import DATASET_ROOT, CROP_SIZE, FULL_SIZE, BATCH_SIZE, NUM_CLASSES, IGNORE_INDEX, DEVICE, CLASS_WEIGHTS
 from src.models import UNet, DeepLabV3Plus, SegFormer, get_model
 from src.evaluate import validate
 
@@ -36,7 +36,14 @@ def train(args):
     # Disable cuDNN benchmark to save VRAM/RAM stability
     torch.backends.cudnn.benchmark = False
     
-    criterion = nn.CrossEntropyLoss(ignore_index=IGNORE_INDEX)
+    if args.weighted_loss:
+        print("Using Weighted Cross Entropy Loss")
+        weights = torch.tensor(CLASS_WEIGHTS).to(device).float()
+        criterion = nn.CrossEntropyLoss(weight=weights, ignore_index=IGNORE_INDEX)
+    else:
+        print("Using Standard Cross Entropy Loss")
+        criterion = nn.CrossEntropyLoss(ignore_index=IGNORE_INDEX)
+        
     optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4) # AdamW is standard now
     
     # Load Checkpoint if resuming
@@ -178,6 +185,7 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--val_interval", type=int, default=1, help="Run validation every N epochs")
     parser.add_argument("--resume", type=str, default=None, help="Path to checkpoint to resume from")
+    parser.add_argument("--weighted_loss", action="store_true", help="Use class weighted loss")
     args = parser.parse_args()
     
     train(args)
