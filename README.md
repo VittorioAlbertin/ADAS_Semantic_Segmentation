@@ -17,7 +17,7 @@ This project implements a comparative study of three semantic segmentation archi
 ## Installation
 1.  **Clone the Repository**:
     ```powershell
-    git clone <repo_url>
+    git clone [<repo_url>](https://github.com/VittorioAlbertin/ADAS_Semantic_Segmentation.git)
     cd ADAS_Semantic_Segmentation
     ```
 
