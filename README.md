@@ -64,9 +64,9 @@ datasets/
 ### 1. Data Pipeline Verification
 Before training, verify the dataset loading, cropping, and label mapping:
 ```powershell
-python debug/check_data.py
+python tools/check_data.py
 ```
-*   **Output**: `debug/sanity_check_train.png` showing Input Image and Colorized Ground Truth.
+*   **Output**: `tools/sanity_check_train.png` showing Input Image and Colorized Ground Truth.
 *   **Checks**: Verifies 512x1024 training crops and correct class mapping.
 
 ### 2. Training
