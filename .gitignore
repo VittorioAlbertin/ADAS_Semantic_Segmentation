@@ -34,7 +34,7 @@ venv/
 # Project specifics
 datasets/
 !datasets/.gitkeep
-tools/debug/sanity_check*.png
+tools/sanity_check*.png
 logs/
 results/
 .vscode/
