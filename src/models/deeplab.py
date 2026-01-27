@@ -133,7 +133,8 @@ class ASPP(nn.Module):
         modules.append(nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.Conv2d(in_channels, out_channels, 1, bias=False),
-            nn.BatchNorm2d(out_channels),
+            # nn.BatchNorm2d(out_channels), # Crash with BS=1 on 1x1
+            nn.GroupNorm(32, out_channels), # Safe for BS=1
             nn.ReLU(inplace=True)
         ))
         

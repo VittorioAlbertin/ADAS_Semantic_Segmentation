@@ -47,6 +47,25 @@ def train(args):
         
     optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4) # AdamW is standard now
     
+    # Freeze Backbone logic
+    if args.freeze_backbone:
+        print("INFO: Freezing Backbone parameters...")
+        if args.model == "deeplab":
+            # Freeze ResNet backbone
+            for param in model.backbone.parameters():
+                param.requires_grad = False
+        elif args.model == "segformer":
+            # Freeze MiT encoder. 
+            # SegFormer structure: model.model -> SegFormerForSemanticSegmentation -> .segformer (encoder)
+            for param in model.model.segformer.parameters():
+                param.requires_grad = False
+        elif args.model == "unet":
+            print("WARNING: U-Net is trained from scratch. --freeze_backbone has no pre-trained backbone to freeze. Ignoring.")
+            
+    # Count Trainable Params
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Trainable Parameters: {trainable_params:,}")
+    
     # Load Checkpoint if resuming
     start_epoch = 0
     if args.resume:
@@ -214,6 +233,7 @@ if __name__ == "__main__":
     parser.add_argument("--val_interval", type=int, default=1, help="Run validation every N epochs")
     parser.add_argument("--resume", type=str, default=None, help="Path to checkpoint to resume from")
     parser.add_argument("--weighted_loss", action="store_true", help="Use class weighted loss")
+    parser.add_argument("--freeze_backbone", action="store_true", help="Freeze the backbone/encoder parameters")
     args = parser.parse_args()
     
     train(args)

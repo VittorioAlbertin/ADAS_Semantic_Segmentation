@@ -1,7 +1,7 @@
 # Cityscapes Semantic Segmentation
 
 ## Project Overview
-This project implements a comparative study of three semantic segmentation architectures on the Cityscapes dataset. The focus is on methodological rigor under constrained resources (Single 8GB GPU). The project uses **PyTorch** and enforces **Automatic Mixed Precision (AMP)** and **Gradient Accumulation** to handle high-resolution data efficiently.
+This project implements a **comparative study** of three **semantic segmentation** architectures on the **Cityscapes** dataset. The focus is on methodological rigor under constrained resources (Single 8GB GPU). The project uses **PyTorch** and enforces **Automatic Mixed Precision (AMP)** and **Gradient Accumulation** to handle high-resolution data efficiently.
 
 ### Models Implemented
 1.  **U-Net (From Scratch)**: Custom 5-level encoder-decoder with Instance Normalization.
@@ -79,14 +79,18 @@ The main training script is `src/train.py`. It supports all three models.
 *   `--val_interval`: Run validation every N epochs (Default: 1).
 *   `--resume`: Path to a checkpoint `.pth` file to resume training from.
 *   `--weighted_loss`: Use Class-Weighted Cross Entropy (Addresses imbalance).
+*   `--freeze_backbone`: Freezes the backbone (ResNet/MiT) to train only the head (Transfer Learning).
 
 **Examples**:
 ```powershell
 # Train U-Net from scratch (Validate every epoch)
 python -m src.train --model unet --epochs 50 --val_interval 1
 
-# Resume training from latest checkpoint
-python -m src.train --model unet --epochs 50 --resume checkpoints/unet_latest.pth
+# Train DeepLab Head Only (Stage 1 of Transfer Learning)
+python -m src.train --model deeplab --epochs 10 --freeze_backbone
+
+# Resume training from latest checkpoint (Stage 2 - Fine Tuning)
+python -m src.train --model deeplab --epochs 50 --resume checkpoints/deeplab_latest.pth
 
 # Train SegFormer with custom LR
 python -m src.train --model segformer --epochs 50 --lr 6e-5
