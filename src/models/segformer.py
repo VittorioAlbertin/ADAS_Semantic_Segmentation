@@ -28,7 +28,6 @@ class SegFormer(nn.Module):
             model_name,
             num_labels=num_classes,
             ignore_mismatched_sizes=True,
-            reshape=True, 
         )
         
     def forward(self, x):
