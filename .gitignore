@@ -39,3 +39,6 @@ logs/
 results/
 .vscode/
 .idea/
+
+# Text files
+*.txt

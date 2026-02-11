@@ -8,7 +8,7 @@
 
 ## Abstract
 
-This project presents a comparative analysis of three distinct semantic segmentation architectures—**U-Net**, **DeepLabV3+**, and **SegFormer**—applied to the **Cityscapes** dataset for Autonomous Driving Assistance Systems (ADAS). The study focuses on implementing and optimizing these models under strict hardware constraints (Single 8GB GPU). By employing techniques such as Automatic Mixed Precision (AMP), Gradient Accumulation, and Class-Weighted Loss functions, we demonstrate effective training strategies for high-resolution segmentation. We evaluate the models based on Mean Intersection over Union (mIoU), considering both global performance and class-specific accuracy to address the severe class imbalance inherent in automotive datasets.
+This project presents a comparative analysis of three distinct semantic segmentation architectures, **U-Net**, **DeepLabV3+**, and **SegFormer**, applied to the **Cityscapes** dataset for Autonomous Driving Assistance Systems (ADAS). The study focuses on implementing and optimizing these models under strict hardware constraints (Single 8GB GPU). By employing techniques such as Automatic Mixed Precision (AMP), Gradient Accumulation, and Class-Weighted Loss functions, we demonstrate effective training strategies for high-resolution segmentation. We evaluate the models based on Mean Intersection over Union (mIoU), considering both global performance and class-specific accuracy to address the severe class imbalance inherent in automotive datasets.
 
 ---
 
@@ -80,33 +80,51 @@ We evolved the loss function to improve performace:
 
 ## 5. Results
 
-*Placeholder for quantitative and qualitative results.*
-
 ### 5.1 Metrics Table
 | Model | Global Pixel Acc | Mean Class Acc | mIoU |
 | :--- | :--- | :--- | :--- |
-| U-Net (Baseline) | *[Insert Value]* | *[Insert Value]* | *[Insert Value]* |
-| DeepLabV3+ | *[Insert Value]* | *[Insert Value]* | *[Insert Value]* |
-| SegFormer | *[Insert Value]* | *[Insert Value]* | *[Insert Value]* |
+| U-Net (Baseline) | 0.8998 | 0.5491 | 0.4612 |
+| DeepLabV3+ | **0.9263** | **0.7224** | **0.6324** |
+| SegFormer | 0.9075 | 0.6457 | 0.5389 |
 
 ### 5.2 Per-Class IoU Analysis
-*[Insert `results/unet/iou_per_class.png` graph here]*
+
+#### U-Net
+![U-Net IoU Per Class](../results/unet/iou_per_class.png)
+
+#### DeepLabV3+
+![DeepLabV3+ IoU Per Class](../results/deeplab/iou_per_class.png)
+
+#### SegFormer
+![SegFormer IoU Per Class](../results/segformer/iou_per_class.png)
 
 **Analysis**:
-*   *Strengths*: [Discuss classes with high IoU, e.g., Road, Vegetation]
-*   *Weaknesses*: [Discuss classes with low IoU, e.g., Wall, Train]
-*   *Impact of Weights*: [Discuss if weighted loss helped recover rare classes]
+*   **Strengths**: All models perform well on frequent classes like *Road*, *Building*, and *Vegetation*. DeepLabV3+ shows superior performance on *Car* (0.8758) and *Sky* (0.9277).
+*   **Weaknesses**: U-Net struggles significantly with rare classes, achieving near-zero IoU for *Wall*, *Train*, and *Motorcycle*. DeepLabV3+ and SegFormer improved on these, but *Train* and *Truck* remain challenging.
+*   **Impact of Weights**:
+    *   **U-Net**: Unweighted training collapsed on rare classes. Introducing weighted loss improved mIoU from 0.3273 to 0.4010, recovering some performance on *Pole* and *Traffic Sign*.
+    *   **SegFormer**: While it showed good intermediate performance (mIoU ~0.57), the final unweighted fine-tuning stage increased Global Pixel Accuracy but degraded Mean Class Accuracy (0.7691 -> 0.6457) and mIoU, indicating it started to overfit to the majority classes/texture at the expense of semantic structure for rare objects.
+    *   **DeepLabV3+**: Proved the most robust, effectively leveraging the weighted loss to maintain high accuracy across the board.
 
 ### 5.3 Qualitative Comparison
-*[Insert sample images from `results/` folder here]*
+We compare the qualitative outputs on a validation sample (Validation ID: 10).
+
+#### U-Net
+![U-Net Result](../results/unet/val_10.png)
+
+#### DeepLabV3+
+![DeepLabV3+ Result](../results/deeplab/val_10.png)
+
+#### SegFormer
+![SegFormer Result](../results/segformer/val_10.png)
 
 ---
 
 ## 6. Conclusions
 
 This study successfully implemented a robust pipeline for semantic segmentation under constrained resources.
-*   **Architectural Findings**: [To be filled: typically SegFormer > DeepLab > U-Net].
+*   **Architectural Findings**: **DeepLabV3+ > SegFormer > U-Net**. DeepLabV3+ proved to be the most effective architecture for this dataset and constraint profile, offering the best trade-off between spatial detail and global context. SegFormer, while promising and efficient, showed instability during the final fine-tuning phase. U-Net served as a solid baseline but lacked the capacity to handle the complex, multi-scale nature of Cityscapes effectively without more advanced modules.
 *   **Engineering**: Usage of InstanceNorm and Gradient Accumulation was critical for convergence at low batch sizes.
-*   **Balancing**: Weighted Loss is essential for Cityscapes to prevent the model from ignoring safety-critical but rare classes.
+*   **Balancing**: Weighted Loss is essential for Cityscapes to prevent the model from ignoring safety-critical but rare classes. The extraction of "Context" via ASPP (DeepLab) or Self-Attention (SegFormer) proved more valuable than simple skip connections (U-Net) for correctly classifying difficult regions.
 
 ---
