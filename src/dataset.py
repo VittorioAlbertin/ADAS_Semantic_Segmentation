@@ -9,12 +9,13 @@ import random
 from src.config import DATASET_ROOT, CROP_SIZE, MEAN, STD, IGNORE_INDEX
 
 class CityscapesDataset(Dataset):
-    def __init__(self, root, split='train', mode='fine', target_type='semantic', transform=None):
+    def __init__(self, root, split='train', mode='fine', target_type='semantic', transform=None, crop=True):
         self.root = root
         self.split = split
         self.mode = 'gtFine' if mode == 'fine' else 'gtCoarse'
         self.target_type = target_type
         self.transform = transform
+        self.crop = crop
         
         self.images_dir = os.path.join(self.root, 'leftImg8bit', self.split)
         self.targets_dir = os.path.join(self.root, self.mode, self.split)
@@ -49,7 +50,7 @@ class CityscapesDataset(Dataset):
         target = Image.open(self.targets[index]) # Load as PIL (indices)
 
         # Joint Transform (Random Crop) if training
-        if self.split == 'train':
+        if self.split == 'train' and self.crop:
             # Random Crop logic manually to ensure same crop for img and target
             # Note: T.RandomCrop handles PIL images
             i, j, h, w = T.RandomCrop.get_params(image, output_size=CROP_SIZE)

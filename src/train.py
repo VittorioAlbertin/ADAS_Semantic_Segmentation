@@ -24,7 +24,7 @@ def train(args):
     print("Initializing Datasets...")
     # Reduce workers to save RAM (Host Allocation Error fix)
     num_workers = 2 
-    train_set = CityscapesDataset(root=DATASET_ROOT, split='train', mode='fine', transform=None)
+    train_set = CityscapesDataset(root=DATASET_ROOT, split='train', mode='fine', transform=None, crop=not args.full_scale)
     val_set = CityscapesDataset(root=DATASET_ROOT, split='val', mode='fine', transform=None)
     
     train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, num_workers=num_workers, pin_memory=True, drop_last=True)
@@ -128,7 +128,9 @@ def train(args):
             print("Running Validation...")
             torch.cuda.empty_cache() # Clear VRAM
             
-            save_dir = os.path.join("results", args.model)
+            # Determine Save Directory
+            exp_name = args.experiment_name if args.experiment_name else args.model
+            save_dir = os.path.join("results", exp_name)
             os.makedirs(save_dir, exist_ok=True)
             
             metrics = validate(model, val_loader, device, NUM_CLASSES, save_dir=save_dir, save_num=5)
@@ -136,18 +138,18 @@ def train(args):
             
             # Save Latest
             os.makedirs("checkpoints", exist_ok=True)
-            checkpoint_path = os.path.join("checkpoints", f"{args.model}_latest.pth")
+            checkpoint_path = os.path.join("checkpoints", f"{exp_name}_latest.pth")
             torch.save(model.state_dict(), checkpoint_path)
             
             # Save Best
             if metrics['mIoU'] > best_iou:
                 best_iou = metrics['mIoU']
-                best_path = os.path.join("checkpoints", f"{args.model}_best.pth")
+                best_path = os.path.join("checkpoints", f"{exp_name}_best.pth")
                 torch.save(model.state_dict(), best_path)
                 print(f"New Best mIoU! Saved to {best_path}")
             
             # --- Logging & Plotting ---
-            log_path = os.path.join("results", args.model, "log.csv")
+            log_path = os.path.join("results", exp_name, "log.csv")
             file_exists = os.path.isfile(log_path)
             
             # Key classes to track: Road (Common), Wall (Rare), Traffic Sign (Safety/Rare), Car (Common)
@@ -217,9 +219,9 @@ def train(args):
                 plt.grid(True)
                 
                 plt.tight_layout()
-                plt.savefig(os.path.join("results", args.model, "training_plot.png"))
+                plt.savefig(os.path.join("results", exp_name, "training_plot.png"))
                 plt.close()
-                print(f"Updated training plot at results/{args.model}/training_plot.png")
+                print(f"Updated training plot at results/{exp_name}/training_plot.png")
             except Exception as e:
                 print(f"Warning: Failed to plot metrics: {e}")
             
@@ -234,6 +236,8 @@ if __name__ == "__main__":
     parser.add_argument("--resume", type=str, default=None, help="Path to checkpoint to resume from")
     parser.add_argument("--weighted_loss", action="store_true", help="Use class weighted loss")
     parser.add_argument("--freeze_backbone", action="store_true", help="Freeze the backbone/encoder parameters")
+    parser.add_argument("--full_scale", action="store_true", help="Train on full scale images (no cropping)")
+    parser.add_argument("--experiment_name", type=str, default=None, help="Name for results/checkpoints (default: model name)")
     args = parser.parse_args()
     
     train(args)

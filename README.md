@@ -80,6 +80,7 @@ The main training script is `src/train.py`. It supports all three models.
 *   `--resume`: Path to a checkpoint `.pth` file to resume training from.
 *   `--weighted_loss`: Use Class-Weighted Cross Entropy (Addresses imbalance).
 *   `--freeze_backbone`: Freezes the backbone (ResNet/MiT) to train only the head (Transfer Learning).
+*   `--full_scale`: Train on full scale images (1024x2048) instead of random crops. Be careful with VRAM usage!
 
 **Examples**:
 ```powershell
@@ -119,7 +120,7 @@ python -m src.evaluate --model unet --checkpoint checkpoints/unet_best.pth --max
 
 ## Technical Implementation Details
 *   **Resolution Strategy**:
-    *   **Training**: Random Crops of 512x1024 to fit into 8GB VRAM with `BatchSize=1`.
+    *   **Training**: Random Crops of 512x1024 (Default) or Full Scale (with `--full_scale`).
     *   **Inference**: Full 1024x2048 input.
 *   **Mixed Precision**: Training uses `torch.amp.autocast` to reduce VRAM usage.
 *   **Gradient Accumulation**: Accumulates gradients over 4 steps to simulate an effective batch size of 4.

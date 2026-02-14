@@ -69,3 +69,18 @@ The training process can be observed in the combined [Phase 1+2 Training Plot](.
 
 ### Summary
 For SegFormer, **unfreezing the backbone** (Phase 2) provided the critical performance boost, but maintaining **Weighted Loss** was essential to prevent regression on rare classes. The final unweighted stage, while beneficial for CNNs (U-Net, DeepLab), was detrimental to the Transformer.
+
+---
+
+## 4. Full Scale Training (The Next Step)
+
+**Goal**: Improve fine-grained segmentation details by training on full-resolution images (1024x2048) instead of random crops (512x1024).
+
+### Hypothesis
+Models with efficient attention mechanisms (SegFormer) or dilated convolutions (DeepLabV3+) might benefit significantly from seeing the global context and full resolution during training, provided the hardware can support it.
+
+### Implementation
+*   **Flag**: `--full_scale`
+*   **modification**: The `CityscapesDataset` now supports a `crop=False` mode during training.
+*   **VRAM Consideration**: This mode is significantly more memory-intensive. It is recommended primarily for **SegFormer** (efficient attention) or **DeepLabV3+** with a frozen backbone. U-Net may OOM on 8GB VRAM with full-scale images.
+
