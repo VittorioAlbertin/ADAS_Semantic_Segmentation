@@ -25,7 +25,7 @@ To rigorously evaluate the impact of **Loss Functions**, **Transfer Learning Str
 
 | Experiment ID | Configuration | Command | Status |
 | :--- | :--- | :--- | :--- |
-| **UNET-A** (Baseline) | Unweighted (20 epochs) | `python -m src.train --model unet --epochs 20` | *Done (10 ep)* - `checkpoints/unet_tenth_unweighted_best.pth`. Deemed sufficient. |
+| **UNET-A** (Baseline) | Unweighted (10 epochs) | `python -m src.train --model unet --epochs 10` | *Done (10 ep)* - `checkpoints/unet_tenth_unweighted_best.pth`. Deemed sufficient. |
 | **UNET-B** | Weighted (20 epochs) | `python -m src.train --model unet --epochs 20 --weighted_loss` | **TODO** |
 | **UNET-C** (Mixed) | Weighted (10) -> Resume Unweighted (10) | *Run UNET-B (10 ep)* -> `python -m src.train --model unet --epochs 10 --resume ...` | *Done* - `checkpoints/unet_best.pth` |
 
@@ -50,7 +50,7 @@ To rigorously evaluate the impact of **Loss Functions**, **Transfer Learning Str
 | Experiment ID | Configuration | Command | Status |
 | :--- | :--- | :--- | :--- |
 | **SF-A** (Baseline) | Cropped, Two-Stage Weighted | *Standard SegFormer training flow* | *Done* - `checkpoints/segformer_10plus10.pth` |
-| **SF-B** (Full) | Full Scale, Two-Stage Weighted | `python -m src.train --model segformer --full_scale --epochs 10 --freeze_backbone --weighted_loss` -> Resume Unfrozen (10 ep) | **TODO** |
+| **SF-B** (Full) | Full Scale, Two-Stage Weighted | `python -m src.train --model segformer --full_scale --epochs 10 --freeze_backbone --weighted_loss` -> Resume Unfrozen (10 ep) | **WIP** |
 | **DL-D** (Full) | Full Scale, Two-Stage Weighted | `python -m src.train --model deeplab --full_scale --epochs 10 --freeze_backbone --weighted_loss` -> Resume Unfrozen (10 ep) | **TODO** |
 
 ---
