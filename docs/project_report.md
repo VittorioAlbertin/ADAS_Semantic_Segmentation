@@ -48,6 +48,31 @@ This project utilizes the **Cityscapes** dataset, a benchmark suite containing h
 *   **Mechanism**: Uses **Self-Attention** for a global receptive field from the first layer and **Overlapped Patch Merging** instead of positional encodings.
 *   **Efficiency**: The MLP decoder aggregates features from all 4 scales, proving highly efficient for the 8GB VRAM budget.
 
+### 3.4 Architectural Adaptations for Resource Constraints
+
+To adapt these foundational models to the physical limitations of consumer hardware (specifically a rigid batch_size=1 limitation for high-resolution tensors), several non-standard architectural modifications were necessary.
+
+#### 3.4.1 U-Net Adaptation
+**Why it couldn't work normally**: The original 2015 U-Net architecture relies on unpadded convolutions, which consistently shrink the spatial dimensions of feature maps at every layer, necessitating complex cropping mechanisms during the skip connections. Furthermore, utilizing standard Batch Normalization (which became standard practice post-2015) mathematically fails when constrained to a batch size of 1, as calculating variance across a single batch element yields zero, leading to unstable gradients.
+
+**How we changed it**: The architecture was modernized by enforcing padding=1 across all convolutional layers to preserve spatial dimensions exactly. Crucially, standard Batch Normalization was entirely replaced with Instance Normalization (nn.InstanceNorm2d). Finally, the learnable transposed convolutions in the expanding path were replaced with deterministic bilinear upsampling.
+
+**What is achieved**: Instance Normalization computes statistics across the spatial dimensions of each individual channel independently, granting the model completely stable training dynamics completely independent of the batch dimension. Padded convolutions allow the encoder feature maps to concatenate perfectly with the decoder without arbitrary cropping, and bilinear upsampling suppresses the grid-like "checkerboard artifacts" common in transposed convolutions, yielding smoother semantic boundaries.
+
+#### 3.4.2 DeepLabV3+ Adaptation
+**Why it couldn't work normally**: The predecessor model, DeepLabV3, lacks a distinct decoder, relying instead on a massive 16x naive upsampling of the deep ASPP features. On a dataset like Cityscapes, this destroys the fine, sharp boundaries required to segment narrow classes like Poles or Pedestrians. Furthermore, the ASPP module utilizes a Global Average Pooling branch that reduces the spatial resolution to $1 \times 1$. Pushing a tensor of shape (1, C, 1, 1) through standard Batch Normalization results in a strict zero variance, immediately crashing the training process with a ZeroDivisionError. Finally, manually implementing atrous convolutions into a ResNet backbone breaks compatibility with pre-trained weights.
+
+**How we changed it**: We escalated the architecture to DeepLabV3+ by implementing a dedicated Decoder block that extracts high-resolution "low-level" features directly from ResNet layer1 and fuses them with the upsampled ASPP output. To prevent the pooling crash, BatchNorm2d in the ASPP image pooling branch was explicitly replaced with Group Normalization (nn.GroupNorm). To preserve pre-trained weights, we utilized PyTorch's native replace_stride_with_dilation parameter rather than building custom multi-grid blocks.
+
+**What is achieved**: The V3+ decoder successfully recovers the spatial precision lost during the deep encoding phases, resulting in sharp, accurate boundaries crucial for urban street scenes. The GroupNorm adaptation elegantly bypasses the $1 \times 1$ pooling crash by calculating statistics across channel groups rather than the batch dimension. Additionally, the native dilation flag allowed for seamless loading of IMAGENET1K_V1 weights, drastically accelerating convergence.
+
+#### 3.4.3 SegFormer Adaptation
+**Why it couldn't work normally**: Standard Vision Transformers (ViTs) rely on fixed positional encodings. Because our training pipeline utilizes $512 \times 1024$ random crops but evaluates on full $1024 \times 2048$ images, rigid positional encodings would break during inference. Furthermore, standard ViTs produce a single-resolution feature map, which is insufficient for dense pixel-level prediction tasks, and pairing a Transformer with a heavy CNN context head (like ASPP) would easily exceed the 8GB VRAM limit.
+
+**How we changed it**: We utilized the MiT-B0 (Mix Transformer) backbone. This specific architecture discards fixed positional encodings entirely, replacing them with a Mix-FFN (a $3 \times 3$ convolution inside the feed-forward network that implicitly learns spatial location via zero-padding). We also bypassed complex decoders by utilizing SegFormer's purely All-MLP decoder, which simply unifies the channel dimensions of the multi-scale features and bilinearly upsamples them.
+
+**What is achieved**: Because Transformers natively utilize Layer Normalization (which normalizes across the channel dimension per pixel), this model is fundamentally immune to the batch_size=1 limitation right out of the box. The Mix-FFN enables the model to accept dynamic, resolution-independent inputs, seamlessly transitioning from cropped training to full-scale inference. Finally, because the Transformer's self-attention mechanism naturally provides a massive effective receptive field from the earliest layers, the ultra-lightweight All-MLP decoder achieves global context awareness without the immense computational overhead of an ASPP module.
+
 ---
 
 ## 4. Technical Implementation Details (Hardware Constraints)
