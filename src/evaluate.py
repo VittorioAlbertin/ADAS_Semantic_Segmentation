@@ -153,7 +153,6 @@ def evaluate(args):
         sorted_counts, sorted_classes, sorted_scores = zip(*data)
         
         x = np.arange(len(sorted_classes))
-        # Color mapped by frequency? Or just standard. Let's stick to standard blue.
         plt.bar(x, sorted_scores, color='skyblue', edgecolor='navy')
         plt.xticks(x, sorted_classes, rotation=45, ha='right')
         plt.ylabel('IoU Score')
