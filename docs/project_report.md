@@ -122,9 +122,9 @@ To address class imbalance, we evolved the loss function:
 *   **SegFormer**: Strong performance (mIoU 0.54) given its lightweight backbone (MiT-B0). It excels at global consistency but struggled with rare classes when class weights were removed.
 *   **U-Net**: The baseline (mIoU 0.46). While improved by weighted loss, the lack of pretrained features and limited receptive field prevents it from competing with modern architectures on complex urban scenes.
 
-### 6.3 Scientific Ablation Study Results
+### 6.3 Evaluation Results Breakdown
 
-We conducted a rigorous ablation study to isolate the impact of Loss Functions and Transfer Learning strategies. The table below summarizes the Mean IoU (mIoU) evolution across different training phases.
+We analyzed the training progression across different phases to understand the impact of Loss Functions and Transfer Learning strategies. The table below summarizes the Mean IoU (mIoU) evolution.
 
 | Model | Phase 1: Frozen/Weighted (Ep 0-10) | Phase 2: Unfrozen/Weighted (Ep 10-20) | Phase 3: Unfrozen/Unweighted | Final Verdict |
 | :--- | :--- | :--- | :--- | :--- |
