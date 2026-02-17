@@ -12,7 +12,7 @@ from src.config import DATASET_ROOT, NUM_CLASSES, IGNORE_INDEX
 
 def calculate_weights():
     print("Initializing Dataset...")
-    dataset = CityscapesDataset(root=DATASET_ROOT, split='train', mode='fine', transform=None)
+    dataset = CityscapesDataset(root=DATASET_ROOT, split='train', mode='fine', transform=None, crop=False)
     loader = DataLoader(dataset, batch_size=1, shuffle=False, num_workers=4)
     
     # Pixel counts per class

@@ -1,0 +1,35 @@
+Metric,Value
+Pixel Acc,0.9208
+Mean Class Acc,0.8029
+mIoU,0.6428
+Category mIoU,0.8302
+
+Class,IoU
+road,0.9458
+sidewalk,0.7308
+building,0.8471
+wall,0.3317
+fence,0.3567
+pole,0.5413
+traffic light,0.6163
+traffic sign,0.6867
+vegetation,0.8872
+terrain,0.4894
+sky,0.8785
+person,0.7373
+rider,0.5245
+car,0.8698
+truck,0.3914
+bus,0.7154
+train,0.4714
+motorcycle,0.4858
+bicycle,0.7067
+
+Category,IoU
+flat,0.9631
+construction,0.8548
+object,0.6099
+nature,0.8863
+sky,0.8785
+human,0.7655
+vehicle,0.8530

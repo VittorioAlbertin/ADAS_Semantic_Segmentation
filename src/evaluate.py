@@ -9,7 +9,7 @@ from tqdm import tqdm
 from PIL import Image
 
 from src.dataset import CityscapesDataset
-from src.config import DATASET_ROOT, NUM_CLASSES, IGNORE_INDEX, DEVICE, FULL_SIZE
+from src.config import DATASET_ROOT, NUM_CLASSES, IGNORE_INDEX, DEVICE, FULL_SIZE, CATEGORIES, CLASS_ID_TO_CATEGORY_ID
 from src.models import get_model
 from src.utils import get_cityscapes_colormap, denormalize, decode_segmap
 
@@ -27,7 +27,7 @@ def fast_hist(a, b, n):
     k = (a >= 0) & (a < n)
     return np.bincount(n * a[k].astype(int) + b[k], minlength=n ** 2).reshape(n, n)
 
-def validate(model, val_loader, device, num_classes, max_samples=None, save_dir=None, save_num=0):
+def validate(model, val_loader, device, num_classes, max_samples=None, save_dir=None, save_num=0, model_name=None):
     """
     Runs validation with optional visualization and sample limiting.
     """
@@ -81,6 +81,22 @@ def validate(model, val_loader, device, num_classes, max_samples=None, save_dir=
                 combined = np.hstack([img_vis, gt_vis, pred_vis])
                 Image.fromarray(combined).save(os.path.join(save_dir, f"val_{i}.png"))
             
+            # Save specific indices (29, 42) for request
+            if model_name and i in [29, 42]:
+                selected_dir = os.path.join("results", model_name, "selected_preds")
+                os.makedirs(selected_dir, exist_ok=True)
+                
+                # Use the same logic as visualization: mask ignored regions
+                pred_disp = pred[0].copy()
+                label_disp = label[0]
+                void_mask = (label_disp == IGNORE_INDEX)
+                pred_disp[void_mask] = IGNORE_INDEX
+                
+                pred_vis = decode_segmap(pred_disp)
+                # Save as {model_name}{i}.png
+                save_path = os.path.join(selected_dir, f"{model_name}{i}.png")
+                Image.fromarray(pred_vis).save(save_path)
+            
             # Break if max_samples reached
             if max_samples and (i + 1) >= max_samples:
                 break
@@ -91,11 +107,28 @@ def validate(model, val_loader, device, num_classes, max_samples=None, save_dir=
     iu = np.diag(hist) / (hist.sum(axis=1) + hist.sum(axis=0) - np.diag(hist))
     mean_iu = np.nanmean(iu)
     
+    # Calculate Category IoU
+    # Map 19 classes to 7 categories
+    # cat_hist: (num_categories, num_categories)
+    num_categories = len(CATEGORIES)
+    cat_hist = np.zeros((num_categories, num_categories))
+    
+    for i in range(num_classes):
+        for j in range(num_classes):
+            cat_i = CLASS_ID_TO_CATEGORY_ID[i]
+            cat_j = CLASS_ID_TO_CATEGORY_ID[j]
+            cat_hist[cat_i, cat_j] += hist[i, j]
+            
+    cat_iu = np.diag(cat_hist) / (cat_hist.sum(axis=1) + cat_hist.sum(axis=0) - np.diag(cat_hist))
+    mean_cat_iu = np.nanmean(cat_iu)
+
     return {
         "Pixel Acc": acc,
         "Mean Acc": acc_cls,
         "mIoU": mean_iu,
-        "Class IoU": iu
+        "Class IoU": iu,
+        "Category mIoU": mean_cat_iu,
+        "Category IoU": cat_iu
     }
 
 def evaluate(args):
@@ -117,14 +150,19 @@ def evaluate(args):
     val_set = CityscapesDataset(root=DATASET_ROOT, split='val', mode='fine', transform=None)
     val_loader = DataLoader(val_set, batch_size=1, shuffle=False, num_workers=2, pin_memory=True)
 
-    save_dir = os.path.join("results", args.model)
+    # Determine Save Directory
+    if args.experiment_name:
+        save_dir = os.path.join("results", args.experiment_name)
+    else:
+        save_dir = os.path.join("results", args.model)
     os.makedirs(save_dir, exist_ok=True)
     
     # Call validate with all arguments
     metrics = validate(model, val_loader, device, NUM_CLASSES, 
                       max_samples=args.max_samples,
                       save_dir=save_dir,
-                      save_num=args.save_num)
+                      save_num=args.save_num,
+                      model_name=args.model)
     
     print("\n" + "="*40)
     print(f"Evaluation Results [{args.model}]")
@@ -132,9 +170,14 @@ def evaluate(args):
     print(f"Pixel Accuracy:     {metrics['Pixel Acc']:.4f}")
     print(f"Mean Per-Class Acc: {metrics['Mean Acc']:.4f}")
     print(f"Mean IoU:           {metrics['mIoU']:.4f}")
+    print(f"Mean Category IoU:  {metrics['Category mIoU']:.4f}")
     print("-" * 40)
     print("Per-Class IoU:")
     for name, score in zip(CLASSES, metrics['Class IoU']):
+        print(f"{name:15s}: {score:.4f}")
+    print("-" * 40)
+    print("Per-Category IoU:")
+    for name, score in zip(CATEGORIES, metrics['Category IoU']):
         print(f"{name:15s}: {score:.4f}")
     print("="*40)
 
@@ -168,6 +211,29 @@ def evaluate(args):
         plt.savefig(plot_path)
         plt.close()
         print(f"Per-Class IoU plot saved to {plot_path}")
+        
+        # --- Plot Per-Category IoU ---
+        plot_cat_path = os.path.join(save_dir, "iou_per_category.png")
+        plt.figure(figsize=(10, 6))
+        
+        # No specific sorting needed, or maybe alphabetical/default order is fine
+        x_cat = np.arange(len(CATEGORIES))
+        plt.bar(x_cat, metrics['Category IoU'], color='lightgreen', edgecolor='darkgreen')
+        plt.xticks(x_cat, CATEGORIES, rotation=45, ha='right')
+        plt.ylabel('IoU Score')
+        plt.title(f'Per-Category IoU - {args.model}')
+        plt.ylim(0, 1.0)
+        plt.grid(axis='y', linestyle='--', alpha=0.7)
+        
+        # Add value labels
+        for i, v in enumerate(metrics['Category IoU']):
+            plt.text(i, v + 0.01, f"{v:.2f}", ha='center', fontsize=9)
+            
+        plt.tight_layout()
+        plt.savefig(plot_cat_path)
+        plt.close()
+        print(f"Per-Category IoU plot saved to {plot_cat_path}")
+        
     except Exception as e:
         print(f"Warning: Failed to plot IoU: {e}")
 
@@ -180,9 +246,14 @@ def evaluate(args):
         writer.writerow(['Pixel Acc', f"{metrics['Pixel Acc']:.4f}"])
         writer.writerow(['Mean Class Acc', f"{metrics['Mean Acc']:.4f}"])
         writer.writerow(['mIoU', f"{metrics['mIoU']:.4f}"])
+        writer.writerow(['Category mIoU', f"{metrics['Category mIoU']:.4f}"])
         writer.writerow([])
         writer.writerow(['Class', 'IoU'])
         for name, score in zip(CLASSES, metrics['Class IoU']):
+            writer.writerow([name, f"{score:.4f}"])
+        writer.writerow([])
+        writer.writerow(['Category', 'IoU'])
+        for name, score in zip(CATEGORIES, metrics['Category IoU']):
             writer.writerow([name, f"{score:.4f}"])
     print(f"Metrics saved to {csv_path}")
 
@@ -193,6 +264,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_num", type=int, default=5, help="Number of qualitative images to save")
     parser.add_argument("--device", type=str, default=None, help="Device to use (cuda/cpu)")
     parser.add_argument("--max_samples", type=int, default=None, help="Stop after N samples (for debugging)")
+    parser.add_argument("--experiment_name", type=str, default=None, help="Name for results folder (default: model name)")
     args = parser.parse_args()
     
     evaluate(args)

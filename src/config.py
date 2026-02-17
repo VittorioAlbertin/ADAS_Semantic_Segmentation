@@ -65,3 +65,19 @@ CLASS_COUNTS = [
 # Normalization (ImageNet stats)
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
+
+# Category definitions (Cityscapes standard)
+CATEGORIES = [
+    'flat', 'construction', 'object', 'nature', 'sky', 'human', 'vehicle'
+]
+
+# Map logical class ID (0-18) to category ID (0-6)
+CLASS_ID_TO_CATEGORY_ID = [
+    0, 0,       # road, sidewalk
+    1, 1, 1,    # building, wall, fence
+    2, 2, 2,    # pole, traffic light, traffic sign
+    3, 3,       # vegetation, terrain
+    4,          # sky
+    5, 5,       # person, rider
+    6, 6, 6, 6, 6, 6 # car, truck, bus, train, motorcycle, bicycle
+]

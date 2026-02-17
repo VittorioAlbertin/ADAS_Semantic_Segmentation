@@ -72,7 +72,7 @@ class DeepLabV3Plus(nn.Module):
         return x
 
 class ASPP(nn.Module):
-    def __init__(self, in_channels, out_channels=256, atrous_rates=[6, 12, 18]): # Atrous rates different from original paper
+    def __init__(self, in_channels, out_channels=256, atrous_rates=[12, 24, 36]): # Atrous rates different from original paper
         super(ASPP, self).__init__()
         modules = []
         # 1x1 Conv
