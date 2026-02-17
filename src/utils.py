@@ -7,7 +7,6 @@ def get_cityscapes_colormap():
     """
     Returns the Cityscapes colormap for the 19 training classes.
     """
-    # 19 colors for the 19 classes + 1 color for ignore_index (black)
     colors = [
         [128, 64, 128],  # road
         [244, 35, 232],  # sidewalk
@@ -38,10 +37,7 @@ def decode_segmap(mask):
     """
     mask = mask.cpu().numpy().astype(np.uint8) if isinstance(mask, torch.Tensor) else mask.astype(np.uint8)
     colormap = get_cityscapes_colormap()
-    
-    # Map ignore index (255) to 19 (the black color at the end of colormap)
     mask[mask == IGNORE_INDEX] = 19
-    
     rgb = colormap[mask]
     return rgb
 

@@ -30,8 +30,7 @@ def main():
     images_val, masks_val = next(iter(val_loader))
     print(f"Val Image Batch Shape: {images_val.shape}")
     print(f"Val Mask Batch Shape: {masks_val.shape}")
-    
-    # Optional: verify ignore index
+
     unique_labels = masks.unique()
     print(f"\nUnique labels in batch: {unique_labels}")
     

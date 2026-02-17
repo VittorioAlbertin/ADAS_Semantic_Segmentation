@@ -45,7 +45,6 @@ def main():
         freeze_backbone(model, model_name)
         total_frozen, trainable_frozen = count_params(model)
         
-        # Only print frozen row if it's different (i.e., freezing actually did something)
         if trainable_frozen != trainable:
              print(f"{model_name:<15} {'Frozen Backbone':<20} {format_params(total_frozen):<15} {format_params(trainable_frozen):<20} {trainable_frozen/total_frozen*100:>9.1f}%")
         else:

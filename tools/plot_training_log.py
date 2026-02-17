@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 
 def plot_training_log():
     # Use unet/log.csv by default or arg
-    log_path = r"results/segformer/log.csv"
-    output_path = r"results/segformer/training_plot.png"
+    log_path = r"results/.../log.csv"
+    output_path = r"results/.../training_plot.png"
     
     if not os.path.exists(log_path):
         print(f"Error: {log_path} not found.")

@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from PIL import Image
+import csv
 
 from src.dataset import CityscapesDataset
 from src.config import DATASET_ROOT, NUM_CLASSES, IGNORE_INDEX, DEVICE, FULL_SIZE, CATEGORIES, CLASS_ID_TO_CATEGORY_ID
@@ -80,23 +81,7 @@ def validate(model, val_loader, device, num_classes, max_samples=None, save_dir=
                 
                 combined = np.hstack([img_vis, gt_vis, pred_vis])
                 Image.fromarray(combined).save(os.path.join(save_dir, f"val_{i}.png"))
-            
-            # Save specific indices (29, 42) for request
-            if model_name and i in [29, 42]:
-                selected_dir = os.path.join("results", model_name, "selected_preds")
-                os.makedirs(selected_dir, exist_ok=True)
-                
-                # Use the same logic as visualization: mask ignored regions
-                pred_disp = pred[0].copy()
-                label_disp = label[0]
-                void_mask = (label_disp == IGNORE_INDEX)
-                pred_disp[void_mask] = IGNORE_INDEX
-                
-                pred_vis = decode_segmap(pred_disp)
-                # Save as {model_name}{i}.png
-                save_path = os.path.join(selected_dir, f"{model_name}{i}.png")
-                Image.fromarray(pred_vis).save(save_path)
-            
+
             # Break if max_samples reached
             if max_samples and (i + 1) >= max_samples:
                 break
@@ -216,7 +201,6 @@ def evaluate(args):
         plot_cat_path = os.path.join(save_dir, "iou_per_category.png")
         plt.figure(figsize=(10, 6))
         
-        # No specific sorting needed, or maybe alphabetical/default order is fine
         x_cat = np.arange(len(CATEGORIES))
         plt.bar(x_cat, metrics['Category IoU'], color='lightgreen', edgecolor='darkgreen')
         plt.xticks(x_cat, CATEGORIES, rotation=45, ha='right')
@@ -239,7 +223,6 @@ def evaluate(args):
 
     # Save to CSV
     csv_path = os.path.join(save_dir, "evaluation_metrics.csv")
-    import csv # Lazy import or add up top, assume standard
     with open(csv_path, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['Metric', 'Value'])

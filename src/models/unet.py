@@ -42,11 +42,10 @@ class Up(nn.Module):
         
         # Using bilinear upsampling followed by a conv layer to reduce channels
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.conv = DoubleConv(in_channels, out_channels) # in_channels here is input_channels (from cat)
+        self.conv = DoubleConv(in_channels, out_channels)
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
-        # input is CHW
         diffY = x2.size()[2] - x1.size()[2]
         diffX = x2.size()[3] - x1.size()[3]
 
@@ -68,13 +67,13 @@ class UNet(nn.Module):
         # L1
         self.inc = DoubleConv(n_channels, base_c)
         # L2
-        self.down1 = Down(base_c, base_c * 2) 
+        self.down1 = Down(base_c, base_c * 2)
         # L3
-        self.down2 = Down(base_c * 2, base_c * 4) 
+        self.down2 = Down(base_c * 2, base_c * 4)
         # L4
-        self.down3 = Down(base_c * 4, base_c * 8) 
+        self.down3 = Down(base_c * 4, base_c * 8)
         # L5 (Bottleneck)
-        self.down4 = Down(base_c * 8, base_c * 16) 
+        self.down4 = Down(base_c * 8, base_c * 16)
         
         # Decoder (4 upsampling steps)
         # Up 1: 1024 + 512 -> 512
@@ -103,7 +102,6 @@ class UNet(nn.Module):
         return logits
 
 if __name__ == "__main__":
-    # Simple Sanity Check
     model = UNet(n_channels=3, n_classes=19)
     dummy_input = torch.randn(1, 3, 512, 1024)
     output = model(dummy_input)

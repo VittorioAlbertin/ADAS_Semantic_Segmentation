@@ -99,7 +99,6 @@ def main():
     
     for model_name in models_to_test:
         for use_amp in amp_modes:
-            # Skip AMP on CPU generally (though bfloat16 exists, let's stick to cuda amp for now)
             if device.type == 'cpu' and use_amp:
                 continue
                 

@@ -25,22 +25,15 @@ def calculate_weights():
         label = label[label != IGNORE_INDEX]
         
         # Bincount
-        # Ensure we only count valid classes
         lbl_counts = np.bincount(label, minlength=NUM_CLASSES)
         if len(lbl_counts) > NUM_CLASSES:
-             # Just in case something weird happens, truncate
              lbl_counts = lbl_counts[:NUM_CLASSES]
         
         counts += lbl_counts
     
     # Calculate Weights (ENet Scheme)
-    # Class probability = count / total
-    # Weight = 1 / ln(1.02 + prob)
-    
     total_pixels = counts.sum()
     probs = counts / total_pixels
-    
-    # ENet weights
     weights = 1.0 / np.log(1.02 + probs)
     
     print("\n" + "="*40)

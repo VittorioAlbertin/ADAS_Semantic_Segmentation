@@ -1,7 +1,7 @@
 import os
 import torch
 
-DATASET_ROOT = r"C:\Users\v01al\Documents\GitHub\ADAS_Semantic_Segmentation\datasets\cityscapes"
+DATASET_ROOT = r"C:\...\datasets\cityscapes"
 
 # Model Parameters
 NUM_CLASSES = 19

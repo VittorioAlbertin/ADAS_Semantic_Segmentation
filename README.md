@@ -5,12 +5,10 @@ This project implements a **comparative study** of three **semantic segmentation
 
 **Focus**: Methodological rigor under strict hardware constraints (Single 8GB GPU).
 
-> [!NOTE]
-> For a detailed analysis of architectures, training strategies, and experimental results, please read the **[Project Report](docs/project_report.md)**.
 
 ## System Requirements
 *   **OS**: Windows 11 / Linux
-*   **GPU**: 8GB VRAM (min)
+*   **GPU**: Nvidia 4070 laptop 8GB
 *   **Python**: 3.10+
 *   **CUDA**: 12.x / 13.x
 
@@ -32,6 +30,12 @@ This project implements a **comparative study** of three **semantic segmentation
 
 ## Dataset
 Ensure **Cityscapes** is at `datasets/cityscapes/` with `gtFine` and `leftImg8bit`.
+
+> [!IMPORTANT]
+> You must update `src/config.py` with the absolute path to your dataset:
+> ```python
+> DATASET_ROOT = r"C:\path\to\datasets\cityscapes"
+> ```
 
 ## Usage
 

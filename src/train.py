@@ -22,7 +22,7 @@ def train(args):
 
     # Data Loaders
     print("Initializing Datasets...")
-    # Reduce workers to save RAM (Host Allocation Error fix)
+    # Reduce workers to save RAM
     num_workers = 2 
     train_set = CityscapesDataset(root=DATASET_ROOT, split='train', mode='fine', transform=None, crop=not args.full_scale)
     val_set = CityscapesDataset(root=DATASET_ROOT, split='val', mode='fine', transform=None)
@@ -45,7 +45,7 @@ def train(args):
         print("Using Standard Cross Entropy Loss")
         criterion = nn.CrossEntropyLoss(ignore_index=IGNORE_INDEX)
         
-    optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4) # AdamW is standard now
+    optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=1e-4)
     
     # Freeze Backbone logic
     if args.freeze_backbone:
@@ -55,8 +55,7 @@ def train(args):
             for param in model.backbone.parameters():
                 param.requires_grad = False
         elif args.model == "segformer":
-            # Freeze MiT encoder. 
-            # SegFormer structure: model.model -> SegFormerForSemanticSegmentation -> .segformer (encoder)
+            # Freeze MiT encoder
             for param in model.model.segformer.parameters():
                 param.requires_grad = False
         elif args.model == "unet":
@@ -72,10 +71,6 @@ def train(args):
         if os.path.isfile(args.resume):
             print(f"Loading checkpoint '{args.resume}'")
             checkpoint = torch.load(args.resume, map_location=device)
-            # Handle if file is full checkpoint or just state_dict
-            # We saved just state_dict in previous version.
-            # To resume epoch, we need to have saved it. 
-            # Since we didn't, we just load weights.
             model.load_state_dict(checkpoint)
             print(f"Loaded checkpoint '{args.resume}'")
         else:
@@ -86,7 +81,7 @@ def train(args):
 
     # Training Loop
     best_iou = 0.0
-    ACCUM_STEPS = 4  # Simulate Batch Size = 4 * 1 = 4
+    ACCUM_STEPS = 4
     
     print("Starting Training...")
     for epoch in range(start_epoch, args.epochs):
@@ -116,7 +111,7 @@ def train(args):
                 scaler.update()
                 optimizer.zero_grad()
                 
-            loss_val = loss.item() * ACCUM_STEPS # Back to real loss for logging
+            loss_val = loss.item() * ACCUM_STEPS
             epoch_loss += loss_val
             progress_bar.set_postfix({'loss': loss_val})
 
@@ -126,7 +121,7 @@ def train(args):
         # Validation
         if (epoch + 1) % args.val_interval == 0:
             print("Running Validation...")
-            torch.cuda.empty_cache() # Clear VRAM
+            torch.cuda.empty_cache()
             
             # Determine Save Directory
             exp_name = args.experiment_name if args.experiment_name else args.model
@@ -153,7 +148,6 @@ def train(args):
             file_exists = os.path.isfile(log_path)
             
             # Key classes to track: Road (Common), Wall (Rare), Traffic Sign (Safety/Rare), Car (Common)
-            # Indices: Road=0, Wall=3, Traffic Sign=7, Car=13
             iou_road = metrics['Class IoU'][0]
             iou_wall = metrics['Class IoU'][3]
             iou_sign = metrics['Class IoU'][7]
@@ -225,7 +219,7 @@ def train(args):
             except Exception as e:
                 print(f"Warning: Failed to plot metrics: {e}")
             
-            model.train() # Switch back to train mode
+            model.train()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

@@ -8,7 +8,6 @@ class SegFormer(nn.Module):
         super(SegFormer, self).__init__()
         
         # Use mit-b0 (Lightest)
-        # We load the pretrained encoder/model but initialize the head for our num_classes
         model_name = "nvidia/mit-b0" if pretrained_backbone else "nvidia/mit-b0" 
         
         self.model = SegformerForSemanticSegmentation.from_pretrained(
@@ -18,11 +17,11 @@ class SegFormer(nn.Module):
         )
         
     def forward(self, x):
-        # SegFormer outputs logits of half the resolution (H/4, W/4)
+        # SegFormer outputs logits of resolution (H/4, W/4)
         outputs = self.model(pixel_values=x)
         logits = outputs.logits # (B, num_classes, H/4, W/4)
         
-        # Upsample to full input resolution
+        # Upsample to input resolution
         logits = F.interpolate(logits, size=x.shape[-2:], mode='bilinear', align_corners=False)
         
         return logits

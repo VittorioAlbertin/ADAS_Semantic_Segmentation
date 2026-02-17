@@ -8,16 +8,13 @@ class DeepLabV3Plus(nn.Module):
         super(DeepLabV3Plus, self).__init__()
         
         # 1. Backbone: ResNet-50 with Dilated Convolutions
-        # We need "layer 1" (low level) and "layer 4" (high level)
         weights = ResNet50_Weights.IMAGENET1K_V1 if pretrained_backbone else None
         self.backbone = resnet50(weights=weights, replace_stride_with_dilation=[False, True, True])
         
         # 2. ASPP (Atrous Spatial Pyramid Pooling)
-        # Input: 2048 channels (from ResNet Layer 4) -> Output: 256 channels
         self.aspp = ASPP(in_channels=2048, out_channels=256)
         
         # 3. Decoder
-        # Low-level feature projection (from Layer 1 - 256 channels)
         self.low_level_conv = nn.Sequential(
             nn.Conv2d(256, 48, kernel_size=1, bias=False),
             nn.BatchNorm2d(48),
@@ -66,13 +63,13 @@ class DeepLabV3Plus(nn.Module):
         # Classifier
         x = self.classifier(x)
         
-        # Final Upsample to original size
+        # Upsample to original size
         x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
         
         return x
 
 class ASPP(nn.Module):
-    def __init__(self, in_channels, out_channels=256, atrous_rates=[12, 24, 36]): # Atrous rates different from original paper
+    def __init__(self, in_channels, out_channels=256, atrous_rates=[12, 24, 36]):
         super(ASPP, self).__init__()
         modules = []
         # 1x1 Conv
@@ -94,7 +91,7 @@ class ASPP(nn.Module):
         modules.append(nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.Conv2d(in_channels, out_channels, 1, bias=False),
-            nn.GroupNorm(32, out_channels), # Safe for BS=1
+            nn.GroupNorm(32, out_channels),
             nn.ReLU(inplace=True)
         ))
         

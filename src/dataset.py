@@ -35,7 +35,6 @@ class CityscapesDataset(Dataset):
                     self.targets.append(os.path.join(target_dir, target_name))
 
         # Official mapping from https://github.com/mcordts/cityscapesScripts/blob/master/cityscapesscripts/helpers/labels.py
-        # We map id to trainId
         self.id_to_trainId = {
             7: 0, 8: 1, 11: 2, 12: 3, 13: 4, 17: 5,
             19: 6, 20: 7, 21: 8, 22: 9, 23: 10, 24: 11, 25: 12,
