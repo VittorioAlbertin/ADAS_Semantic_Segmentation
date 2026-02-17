@@ -43,6 +43,7 @@ old_results/
 presentation_images
 tools/run_experiments.ps1
 PRESENTATION.md
+docs/
 
 # Text files
 *.txt
